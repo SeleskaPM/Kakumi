@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <span>
 
-namespace kak {
+namespace kak::tga {
     Image decode_image(const std::filesystem::path& filepath);
 }
 

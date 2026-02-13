@@ -40,7 +40,7 @@ this decoder assumes that 5 bits per primary is always opaque */
 
 #include <utility>
 
-kak::Image kak::decode_image(const std::filesystem::path& filepath)
+kak::Image kak::tga::decode_image(const std::filesystem::path& filepath)
 {
     using namespace kak::impl;
     using namespace kak::impl::tga;
@@ -134,7 +134,7 @@ kak::Image kak::decode_image(const std::filesystem::path& filepath)
         else { image.pixel_data = read_image_area_mapped(tga_file, header); }
     }
     else {
-        Read_image_data_func read_image_data_func;
+        Read_image_data_func read_image_data_func = nullptr;
 
         if(compressed) {
             switch(header.pixel_depth) {
@@ -364,9 +364,9 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_data_truecolor_compressed(s
                 const std::uint8_t byte2 {get_byte(ifs)};
                 const int color {byte1 | (byte2 << 8)};
 
-                const std::uint8_t blue {color & 0b0000'0000'0001'1111};
-                const std::uint8_t green {(color & 0b0000'0011'1110'0000) >> 5};
-                const std::uint8_t red {(color & 0b0111'1100'0000'0000) >> 10};
+                const std::uint8_t blue = color & 0b0000'0000'0001'1111;
+                const std::uint8_t green = (color & 0b0000'0011'1110'0000) >> 5;
+                const std::uint8_t red = (color & 0b0111'1100'0000'0000) >> 10;
 
                 for(int i = 0; i < repetition_count; ++i) {
                     image_data.push_back(blue);
