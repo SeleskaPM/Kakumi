@@ -34,8 +34,7 @@ Another thing to mention is the alpha in the 5 bits per primary color
 format (ARRRRRGG GGGBBBBB). The first bit is supposed to indicate
 transparency: if its value is 1 then the pixel is transparent.
 Unfortunately, in practice, that is not reliable and due to that
-this decoder assumes that 5 bits per primary is always opaque.
-*/
+this decoder assumes that 5 bits per primary is always opaque */
 
 #include "tga.hpp"
 
@@ -92,7 +91,6 @@ kak::Image kak::decode_image(const std::filesystem::path& filepath)
                 case 32:
                     pixel_format = Pixel_format::bgra;
                     break;
-                default: throw Exception {Error::bad_formed_file};
             }
 
             compressed = header.image_type == 10;
@@ -107,13 +105,10 @@ kak::Image kak::decode_image(const std::filesystem::path& filepath)
                 case 16:
                     pixel_format = Pixel_format::grey_alpha;
                     break;
-                default: throw Exception {Error::bad_formed_file};
             }
 
             compressed = header.image_type == 11;
             break;
-
-        default: throw Exception {Error::bad_formed_file};
     }
 
     /* what's being ignored is the field Image ID, the TGA 2.0
@@ -184,9 +179,9 @@ kak::Image kak::decode_image(const std::filesystem::path& filepath)
 
 void kak::impl::tga::read_header(std::ifstream& ifs, Header& header)
 {
-    header.id_length = get_little_endian_value<std::uint8_t>(ifs);
-    header.color_map_type = get_little_endian_value<std::uint8_t>(ifs);
-    header.image_type = get_little_endian_value<std::uint8_t>(ifs);
+    header.id_length = get_byte(ifs);
+    header.color_map_type = get_byte(ifs);
+    header.image_type = get_byte(ifs);
     switch(header.image_type) {
         case 1: // Uncompressed, Color - mapped Image
         case 2: // Uncompressed, True-color Image
@@ -201,7 +196,7 @@ void kak::impl::tga::read_header(std::ifstream& ifs, Header& header)
     // Color Map Specification
     header.color_map_origin = get_little_endian_value<std::uint16_t>(ifs);
     header.color_map_length = get_little_endian_value<std::uint16_t>(ifs);
-    header.color_map_entry_size = get_little_endian_value<std::uint8_t>(ifs);
+    header.color_map_entry_size = get_byte(ifs);
 
     // validate the Color Map Specification if there is a color-map
     if(header.color_map_type != 0) {
@@ -240,7 +235,7 @@ void kak::impl::tga::read_header(std::ifstream& ifs, Header& header)
     header.image_height = height;
     if(header.image_width == 0 || header.image_height == 0) throw Exception {Error::bad_formed_file};
 
-    header.pixel_depth = get_little_endian_value<std::uint8_t>(ifs);
+    header.pixel_depth = get_byte(ifs);
     /* the TGA 2.0 specification states that "common values are 8,
     * 16, 24 and 32 but other pixel depths could be used". Probably,
     * in practice, one should act as if only those values are valid */
@@ -251,7 +246,7 @@ void kak::impl::tga::read_header(std::ifstream& ifs, Header& header)
         case 32: break;
         default: throw Exception {Error::unsupported_feature};
     }
-    header.image_descriptor = get_little_endian_value<std::uint8_t>(ifs);
+    header.image_descriptor = get_byte(ifs);
 }
 
 std::vector<std::uint8_t> kak::impl::tga::read_color_map(std::ifstream& ifs, const Header& header)
