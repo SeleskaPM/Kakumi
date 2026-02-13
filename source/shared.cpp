@@ -14,6 +14,13 @@ kak::Exception::Exception(const Error error, std::source_location sl)
     m_message = ostr.str();
 }
 
+std::uint8_t kak::impl::get_byte(std::ifstream& source)
+{
+    std::uint8_t byte {static_cast<std::uint8_t>(source.get())};
+    if(not source.good()) throw Exception {Error::read_file_failed};
+    return byte;
+}
+
 std::vector<std::uint8_t> kak::impl::get_bytes(std::ifstream& source, std::streamsize amount)
 {
     std::vector<std::uint8_t> buffer(amount);

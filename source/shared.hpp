@@ -79,5 +79,6 @@ namespace kak::impl {
         return variable;
     }
 
+    std::uint8_t get_byte(std::ifstream& source);
     std::vector<std::uint8_t> get_bytes(std::ifstream& source, std::streamsize amount);
 }
