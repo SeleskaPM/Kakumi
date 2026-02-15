@@ -327,6 +327,7 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_data_truecolor(std::ifstrea
 
     // BGR (5 bits per channel)
     if(header.pixel_depth == 16) {
+        image_data.reserve(static_cast<std::size_t>(pixel_count) * 3u);
         for(std::int32_t i = 0; i < pixel_count; ++i) {
             read_rgb_5bits(image_data, ifs);
         }
@@ -352,6 +353,7 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_data_truecolor_compressed(s
     std::int32_t decompressed_pixels {0};
     // BGR (5 bits per channel)
     if(header.pixel_depth == 16) {
+        image_data.reserve(static_cast<std::size_t>(pixel_count) * 3u);
         while(decompressed_pixels < pixel_count) {
             repetition_count = get_byte(ifs);
             // if true, it's a run-length packet
@@ -387,6 +389,7 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_data_truecolor_compressed(s
     }
     // BGR (1 byte per channel)
     else if(header.pixel_depth == 24) {
+        image_data.reserve(static_cast<std::size_t>(pixel_count) * 3u);
         while(decompressed_pixels < pixel_count) {
             repetition_count = get_byte(ifs);
             // if true, it's a run-length packet
@@ -421,6 +424,7 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_data_truecolor_compressed(s
     }
     // BGRA (1 byte per channel)
     else {
+        image_data.reserve(static_cast<std::size_t>(pixel_count) * 4u);
         while(decompressed_pixels < pixel_count) {
             repetition_count = get_byte(ifs);
             // if true, it's a run-length packet
@@ -486,6 +490,7 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_data_greyscale_compressed(s
     std::int32_t decompressed_pixels {0};
     // greyscale
     if(header.pixel_depth == 8) {
+        image_data.reserve(pixel_count);
         while(decompressed_pixels < pixel_count) {
             repetition_count = get_byte(ifs);
             // if true, it's a run-length packet
@@ -510,6 +515,7 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_data_greyscale_compressed(s
     }
     // greyscale-alpha
     else {
+        image_data.reserve(pixel_count * 2); // safe multiplication
         while(decompressed_pixels < pixel_count) {
             repetition_count = get_byte(ifs);
             // if true, it's a run-length packet
@@ -567,6 +573,7 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_area_mapped(std::ifstream& 
     else { read_color_map_index = read_color_map_index_2bytes; }
 
     if(entry_bytesize == 2) {
+        image_data.reserve(static_cast<std::size_t>(pixel_count) * 3u);
         for(std::int32_t i = 0; i < pixel_count; ++i) {
             index = read_color_map_index(ifs);
             index *= entry_bytesize;
@@ -578,6 +585,7 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_area_mapped(std::ifstream& 
         }
     }
     else if(entry_bytesize == 3) {
+        image_data.reserve(static_cast<std::size_t>(pixel_count) * 3u);
         for(std::int32_t i = 0; i < pixel_count; ++i) {
             index = read_color_map_index(ifs);
             index *= entry_bytesize;
@@ -592,6 +600,7 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_area_mapped(std::ifstream& 
     }
     // entry_bytesize == 4
     else {
+        image_data.reserve(static_cast<std::size_t>(pixel_count) * 4u);
         for(std::int32_t i = 0; i < pixel_count; ++i) {
             index = read_color_map_index(ifs);
             index *= entry_bytesize;
@@ -638,6 +647,7 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_area_mapped_compressed(std:
     else { read_color_map_index = read_color_map_index_2bytes; }
 
     if(entry_bytesize == 2) {
+        image_data.reserve(static_cast<std::size_t>(pixel_count) * 3u);
         while(decompressed_indices_count < pixel_count) {
             repetition_count = get_byte(ifs);
             // if true, it's a run-length packet
@@ -683,6 +693,7 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_area_mapped_compressed(std:
         }
     }
     else if(entry_bytesize == 3) {
+        image_data.reserve(static_cast<std::size_t>(pixel_count) * 3u);
         while(decompressed_indices_count < pixel_count) {
             repetition_count = get_byte(ifs);
             // if true, it's a run-length packet
@@ -725,6 +736,7 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_area_mapped_compressed(std:
     }
     // entry_bytesize == 4
     else {
+        image_data.reserve(static_cast<std::size_t>(pixel_count) * 4u);
         while(decompressed_indices_count < pixel_count) {
             repetition_count = get_byte(ifs);
             // if true, it's a run-length packet
