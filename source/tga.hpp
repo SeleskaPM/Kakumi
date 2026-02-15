@@ -64,6 +64,14 @@ namespace kak::impl::tga {
         std::uint16_t color_map_length;
     };
 
+    /* this array maps a 5 bits color channel value from its original
+    * range [0,31] to the usual 8 bits range [0,255] */
+    constexpr std::uint8_t range_map[32] {
+        0, 8, 16, 25, 33, 41, 49, 58, 66, 74, 82, 90, 99,
+        107, 115, 123, 132, 140, 148, 156, 165, 173, 181,
+        189, 197, 206, 214, 222, 230, 239, 247, 255
+    };
+
     void read_header(std::ifstream& ifs, Header& header);
 
     std::vector<std::uint8_t> read_color_map(std::ifstream& ifs, const Header& header);

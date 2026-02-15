@@ -283,11 +283,11 @@ void kak::impl::tga::read_rgb_5bits(std::vector<std::uint8_t>& image_data, std::
     const std::uint8_t byte2 {get_byte(ifs)};
     const int color {byte1 | (byte2 << 8)};
     // blue
-    image_data.push_back(color & 0b0000'0000'0001'1111);
+    image_data.push_back(range_map[color & 0b0000'0000'0001'1111]);
     // green
-    image_data.push_back((color & 0b0000'0011'1110'0000) >> 5);
+    image_data.push_back(range_map[(color & 0b0000'0011'1110'0000) >> 5]);
     // red
-    image_data.push_back((color & 0b0111'1100'0000'0000) >> 10);
+    image_data.push_back(range_map[(color & 0b0111'1100'0000'0000) >> 10]);
 }
 
 void kak::impl::tga::read_rgb_5bits(std::vector<std::uint8_t>& image_data, std::span<const std::uint8_t> color_map, const std::int32_t index)
@@ -298,11 +298,11 @@ void kak::impl::tga::read_rgb_5bits(std::vector<std::uint8_t>& image_data, std::
     const std::uint8_t byte2 {color_map[index + 1]};
     const int entry {byte1 | (byte2 << 8)};
     // blue
-    image_data.push_back(entry & 0b0000'0000'0001'1111);
+    image_data.push_back(range_map[entry & 0b0000'0000'0001'1111]);
     // green
-    image_data.push_back((entry & 0b0000'0011'1110'0000) >> 5);
+    image_data.push_back(range_map[(entry & 0b0000'0011'1110'0000) >> 5]);
     // red
-    image_data.push_back((entry & 0b0111'1100'0000'0000) >> 10);
+    image_data.push_back(range_map[(entry & 0b0111'1100'0000'0000) >> 10]);
 }
 
 std::vector<std::uint8_t> kak::impl::tga::read_image_area(std::ifstream& ifs, const Header& header, Read_image_data_func read_image_data_func)
@@ -364,9 +364,9 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_data_truecolor_compressed(s
                 const std::uint8_t byte2 {get_byte(ifs)};
                 const int color {byte1 | (byte2 << 8)};
 
-                const std::uint8_t blue = color & 0b0000'0000'0001'1111;
-                const std::uint8_t green = (color & 0b0000'0011'1110'0000) >> 5;
-                const std::uint8_t red = (color & 0b0111'1100'0000'0000) >> 10;
+                const std::uint8_t blue = range_map[color & 0b0000'0000'0001'1111];
+                const std::uint8_t green = range_map[(color & 0b0000'0011'1110'0000) >> 5];
+                const std::uint8_t red = range_map[(color & 0b0111'1100'0000'0000) >> 10];
 
                 for(int i = 0; i < repetition_count; ++i) {
                     image_data.push_back(blue);
@@ -655,9 +655,9 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_area_mapped_compressed(std:
                 const std::uint8_t byte2 {color_map[index + 1]};
                 const int entry {byte1 | (byte2 << 8)};
 
-                const std::uint8_t blue {static_cast<std::uint8_t>(entry & 0b0000'0000'0001'1111)};
-                const std::uint8_t green {static_cast<std::uint8_t>((entry & 0b0000'0011'1110'0000) >> 5)};
-                const std::uint8_t red {static_cast<std::uint8_t>((entry & 0b0111'1100'0000'0000) >> 10)};
+                const std::uint8_t blue {range_map[entry & 0b0000'0000'0001'1111]};
+                const std::uint8_t green {range_map[(entry & 0b0000'0011'1110'0000) >> 5]};
+                const std::uint8_t red {range_map[(entry & 0b0111'1100'0000'0000) >> 10]};
 
                 for(int i = 0; i < repetition_count; ++i) {
                     image_data.push_back(blue);
