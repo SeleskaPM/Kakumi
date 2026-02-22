@@ -179,6 +179,15 @@ namespace rez::impl {
     template<Bitstream_format format>
     class Bitstream {
     public:
+        Bitstream() noexcept
+            : m_last_valid_index {0},
+            m_bits_remaining {0},
+            m_useful_bits_in_current_byte {0}
+
+        {
+            // nothing
+        }
+
         Bitstream(std::span<const std::uint8_t> source) noexcept
             : m_source {source},
             m_last_valid_index {static_cast<std::int64_t>(source.size()) - 1},
@@ -187,6 +196,8 @@ namespace rez::impl {
         {
             // nothing
         }
+
+        void plug_source(std::span<const std::uint8_t> source) noexcept;
 
         std::int32_t read_bits(const int amount);
         std::int32_t peek_bits(const int amount);
@@ -202,7 +213,7 @@ namespace rez::impl {
 
         std::span<const std::uint8_t> m_source;
         std::int64_t m_current_byte_index {0};
-        const std::int64_t m_last_valid_index;
+        std::int64_t m_last_valid_index;
         std::int64_t m_bits_remaining;
         int m_useful_bits_in_current_byte {8};
     };

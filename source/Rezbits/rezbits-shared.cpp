@@ -26,6 +26,16 @@ std::span<const std::uint8_t> rez::impl::Bytestream::get_bytes(const std::size_t
 }
 
 template<rez::impl::Bitstream_format format>
+void rez::impl::Bitstream<format>::plug_source(std::span<const std::uint8_t> source) noexcept
+{
+    m_source = source;
+    m_current_byte_index = 0;
+    m_last_valid_index = static_cast<std::int64_t>(source.size()) - 1;
+    m_bits_remaining = static_cast<std::int64_t>(source.size()) * 8;
+    m_useful_bits_in_current_byte = 8;
+}
+
+template<rez::impl::Bitstream_format format>
 std::int32_t rez::impl::Bitstream<format>::read_bits(const int amount)
 {
     if(amount < 1) return 0;
@@ -139,7 +149,7 @@ std::span<const std::uint8_t> rez::impl::Bitstream<format>::read_bytes(const int
 {
     if(amount < 1) return {};
 
-    if(m_current_byte_index + amount > static_cast<std::int64_t>(m_source.size())) {
+    if(m_current_byte_index + amount > m_source.size()) {
         throw Exception {Error::unexpected_eof};
     }
 
