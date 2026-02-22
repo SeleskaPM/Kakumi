@@ -12,6 +12,11 @@
 #include "Rezbits/shared.hpp"
 
 namespace kak {
+    using std::int8_t; using std::uint8_t;
+    using std::int16_t; using std::uint16_t;
+    using std::int32_t; using std::uint32_t;
+    using std::int64_t; using std::uint64_t;
+
     enum class Error {
         none,
         // general errors
@@ -39,25 +44,34 @@ namespace kak {
         undefined,
         // 8-bits per channel
         grey, grey_alpha,
-        rgb, rgba, argb,
-        bgr, bgra, abgr,
-
+        rgb, rgba,
+        bgr, bgra,
         // 16-bits per channel
         grey16, grey_alpha16,
         rgb16, rgba16
     };
 
     struct Image {
-        std::vector<std::uint8_t> pixel_data;
+        std::vector<uint8_t> pixel_data;
         Pixel_format pixel_format {Pixel_format::undefined};
-        int image_width {0};
-        int image_height {0};
+        int32_t image_width {0};
+        int32_t image_height {0};
         bool premultiplied_alpha {false};
     };
 }
 
 namespace kak::impl {
     //constexpr bool network_byte_order {std::endian::native == std::endian::big};
+
+    /* imagine an image that is 11585 x 11585 pixels and has 16
+    * bytes per channel (RGBA). The total number of bytes of
+    * the pixel data can be represented with an int32_t. For an
+    * image that is 11586 x 11586 that is no longer the case.
+    * Why does that matter? I just think it's a nice property.
+    * Maybe I will personalize it for each image format but for
+    * now, this stays as a global limit */
+    constexpr int32_t max_pixel_dimension {11585};
+    void check_against_max_dimension(int32_t width, int32_t height);
 
     template<std::integral T>
     T get_little_endian_value(std::ifstream& source)
@@ -79,6 +93,14 @@ namespace kak::impl {
         return variable;
     }
 
-    std::uint8_t get_byte(std::ifstream& source);
-    std::vector<std::uint8_t> get_bytes(std::ifstream& source, std::streamsize amount);
+    uint8_t get_byte(std::ifstream& source);
+    std::vector<uint8_t> get_bytes(std::ifstream& source, std::streamsize amount);
+
+    template<std::integral T>
+    constexpr T div8_ceil(T number) // originally called bits_to_bytes_per_whatever
+    {
+        /* The below (some_number + 7) >> 3 is clever code for dividing
+        * some_number by 8 and (if necessary) rounding up */
+        return (number + static_cast<T>(7)) >> 3;
+    }
 }
