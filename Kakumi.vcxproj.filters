@@ -8,6 +8,7 @@
     <ClCompile Include="source\Rezbits\rezbits-shared.cpp" />
     <ClCompile Include="source\Rezbits\deflate.cpp" />
     <ClCompile Include="source\tga.cpp" />
+    <ClCompile Include="source\bmp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\png.hpp" />
@@ -17,6 +18,7 @@
     <ClInclude Include="source\gif.hpp" />
     <ClInclude Include="source\Rezbits\shared.hpp" />
     <ClInclude Include="source\tga.hpp" />
+    <ClInclude Include="source\bmp.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="source\bmp.cpp" />
     <ClCompile Include="source\gif.cpp" />
     <ClCompile Include="source\png.cpp" />
     <ClCompile Include="source\Rezbits\adler32.cpp" />
@@ -28,6 +29,7 @@
     <ClCompile Include="source\tga.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="source\bmp.hpp" />
     <ClInclude Include="source\gif.hpp" />
     <ClInclude Include="source\png.hpp" />
     <ClInclude Include="source\Rezbits\adler32.hpp" />
