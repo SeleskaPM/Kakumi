@@ -28,7 +28,7 @@ kak::Image kak::gif::decode_image(const std::filesystem::path& filepath)
     bool image_descriptor_found {false}; // this function reads only 1 Image Descriptor
     std::vector<std::uint8_t> image_data;
     std::optional<Graphic_control_extension> graphic_control_extension;
-    Pixel_format pixel_format {Pixel_format::undefined};
+    PixelFormat pixel_format {PixelFormat::undefined};
     int image_width {0};
     int image_height {0};
 
@@ -53,11 +53,11 @@ kak::Image kak::gif::decode_image(const std::filesystem::path& filepath)
 
                     if(graphic_control_extension.has_value() && graphic_control_extension->transparent_color_flag) {
                         image_data = depalettise(image_data, local_color_table, graphic_control_extension->transparent_color_index);
-                        pixel_format = Pixel_format::rgba;
+                        pixel_format = PixelFormat::rgba;
                     }
                     else {
                         image_data = depalettise(image_data, local_color_table);
-                        pixel_format = Pixel_format::rgb;
+                        pixel_format = PixelFormat::rgb;
                     }
                 }
                 else {
@@ -68,11 +68,11 @@ kak::Image kak::gif::decode_image(const std::filesystem::path& filepath)
 
                     if(graphic_control_extension.has_value() && graphic_control_extension->transparent_color_flag) {
                         image_data = depalettise(image_data, global_color_table, graphic_control_extension->transparent_color_index);
-                        pixel_format = Pixel_format::rgba;
+                        pixel_format = PixelFormat::rgba;
                     }
                     else {
                         image_data = depalettise(image_data, global_color_table);
-                        pixel_format = Pixel_format::rgb;
+                        pixel_format = PixelFormat::rgb;
                     }
                 }
                 
@@ -147,10 +147,10 @@ kak::Image kak::gif::decode_image(const std::filesystem::path& filepath)
     }
 
     Image image;
-    image.pixel_data = std::move(image_data);
+    image.pixels = std::move(image_data);
     image.pixel_format = pixel_format;
-    image.image_width = image_width;
-    image.image_height = image_height;
+    image.width = image_width;
+    image.height = image_height;
     return image;
 }
 
@@ -219,11 +219,11 @@ kak::gif::Gif kak::gif::decode(const std::filesystem::path& filepath)
 
                         if(graphic_control_extension->transparent_color_flag) {
                             frame.data = depalettise(frame.data, local_color_table, graphic_control_extension->transparent_color_index);
-                            frame.pixel_format = Pixel_format::rgba;
+                            frame.pixel_format = PixelFormat::rgba;
                         }
                         else {
                             frame.data = depalettise(frame.data, local_color_table);
-                            frame.pixel_format = Pixel_format::rgb;
+                            frame.pixel_format = PixelFormat::rgb;
                         }
 
                         // only 1 Graphic Control Extension per Image Descriptor is allowed
@@ -231,7 +231,7 @@ kak::gif::Gif kak::gif::decode(const std::filesystem::path& filepath)
                     }
                     else {
                         frame.data = depalettise(frame.data, local_color_table);
-                        frame.pixel_format = Pixel_format::rgb;
+                        frame.pixel_format = PixelFormat::rgb;
                     }
                 }
                 else {
@@ -247,16 +247,16 @@ kak::gif::Gif kak::gif::decode(const std::filesystem::path& filepath)
 
                         if(graphic_control_extension->transparent_color_flag) {
                             frame.data = depalettise(frame.data, global_color_table, graphic_control_extension->transparent_color_index);
-                            frame.pixel_format = Pixel_format::rgba;    
+                            frame.pixel_format = PixelFormat::rgba;    
                         }
                         else {
                             frame.data = depalettise(frame.data, global_color_table);
-                            frame.pixel_format = Pixel_format::rgb;    
+                            frame.pixel_format = PixelFormat::rgb;    
                         }
                     }
                     else {
                         frame.data = depalettise(frame.data, global_color_table);
-                        frame.pixel_format = Pixel_format::rgb;
+                        frame.pixel_format = PixelFormat::rgb;
                     }
                 }
 

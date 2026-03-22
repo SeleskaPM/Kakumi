@@ -40,7 +40,7 @@ namespace kak {
         Error m_error;
     };
 
-    enum class Pixel_format {
+    enum class PixelFormat {
         undefined,
         // 8-bits per channel
         grey, grey_alpha,
@@ -52,10 +52,10 @@ namespace kak {
     };
 
     struct Image {
-        std::vector<uint8_t> pixel_data;
-        Pixel_format pixel_format {Pixel_format::undefined};
-        int32_t image_width {0};
-        int32_t image_height {0};
+        std::vector<uint8_t> pixels;
+        PixelFormat pixel_format {PixelFormat::undefined};
+        int32_t width {0};
+        int32_t height {0};
         bool premultiplied_alpha {false};
     };
 }

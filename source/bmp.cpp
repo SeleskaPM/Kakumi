@@ -379,10 +379,10 @@ kak::Image kak::impl::bmp::read_bitmapcoreheader_file(std::ifstream& ifs, Bmp_he
 
     if(dib_header.bottom_top) flip_image_data(image_data, dib_header.height, dib_header.width * 3);
     Image result;
-    result.pixel_data = std::move(image_data);
-    result.pixel_format = Pixel_format::bgr;
-    result.image_width = dib_header.width;
-    result.image_height = dib_header.height;
+    result.pixels = std::move(image_data);
+    result.pixel_format = PixelFormat::bgr;
+    result.width = dib_header.width;
+    result.height = dib_header.height;
 
     return result;
 }

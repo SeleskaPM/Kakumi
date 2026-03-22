@@ -52,7 +52,7 @@ kak::Image kak::tga::decode_image(const std::filesystem::path& filepath)
     read_header(tga_file, header);
 
     // determine the pixel format
-    Pixel_format pixel_format {Pixel_format::undefined};
+    PixelFormat pixel_format {PixelFormat::undefined};
     bool compressed {false};
     bool needs_color_map {false};
     /* the TGA 2.0 specification states that it's better to check the
@@ -65,9 +65,9 @@ kak::Image kak::tga::decode_image(const std::filesystem::path& filepath)
             if(header.color_map_type == 0) throw Exception {Error::bad_formed_file};
 
             if(header.color_map_entry_size < 32) {
-                pixel_format = Pixel_format::bgr;
+                pixel_format = PixelFormat::bgr;
             }
-            else { pixel_format = Pixel_format::bgra; }
+            else { pixel_format = PixelFormat::bgra; }
 
             // leverage the oportunity to do this validation
             if(header.pixel_depth > 16) {
@@ -86,10 +86,10 @@ kak::Image kak::tga::decode_image(const std::filesystem::path& filepath)
             switch(header.pixel_depth) {
                 case 16: // 5 bits per primary color
                 case 24:
-                    pixel_format = Pixel_format::bgr;
+                    pixel_format = PixelFormat::bgr;
                     break;
                 case 32:
-                    pixel_format = Pixel_format::bgra;
+                    pixel_format = PixelFormat::bgra;
                     break;
             }
 
@@ -100,10 +100,10 @@ kak::Image kak::tga::decode_image(const std::filesystem::path& filepath)
         case 11: // Run-length encoded, Black-and-white Image
             switch(header.pixel_depth) {
                 case 8:
-                    pixel_format = Pixel_format::grey;
+                    pixel_format = PixelFormat::grey;
                     break;
                 case 16:
-                    pixel_format = Pixel_format::grey_alpha;
+                    pixel_format = PixelFormat::grey_alpha;
                     break;
             }
 
@@ -123,15 +123,15 @@ kak::Image kak::tga::decode_image(const std::filesystem::path& filepath)
 
     Image image;
     image.pixel_format = pixel_format;
-    image.image_width = header.image_width;
-    image.image_height = header.image_height;
+    image.width = header.image_width;
+    image.height = header.image_height;
 
     // TGA files are quite awkward...
     if(needs_color_map) {
         if(compressed) {
-            image.pixel_data = read_image_area_mapped_compressed(tga_file, header);
+            image.pixels = read_image_area_mapped_compressed(tga_file, header);
         }
-        else { image.pixel_data = read_image_area_mapped(tga_file, header); }
+        else { image.pixels = read_image_area_mapped(tga_file, header); }
     }
     else {
         Read_image_data_func read_image_data_func = nullptr;
@@ -143,7 +143,7 @@ kak::Image kak::tga::decode_image(const std::filesystem::path& filepath)
                     break;
 
                 case 16:
-                    if(pixel_format == Pixel_format::grey_alpha) { read_image_data_func = read_image_data_greyscale_compressed; }
+                    if(pixel_format == PixelFormat::grey_alpha) { read_image_data_func = read_image_data_greyscale_compressed; }
                     else { read_image_data_func = read_image_data_truecolor_compressed; }
                     break;
 
@@ -160,7 +160,7 @@ kak::Image kak::tga::decode_image(const std::filesystem::path& filepath)
                     break;
 
                 case 16:
-                    if(pixel_format == Pixel_format::grey_alpha) { read_image_data_func = read_image_data_greyscale; }
+                    if(pixel_format == PixelFormat::grey_alpha) { read_image_data_func = read_image_data_greyscale; }
                     else { read_image_data_func = read_image_data_truecolor; }
                     break;
 
@@ -171,7 +171,7 @@ kak::Image kak::tga::decode_image(const std::filesystem::path& filepath)
             }    
         }
 
-        image.pixel_data = read_image_area(tga_file, header, read_image_data_func);
+        image.pixels = read_image_area(tga_file, header, read_image_data_func);
     }
 
     return image;

@@ -130,17 +130,17 @@ kak::Image kak::png::decode_image(const std::filesystem::path& filepath)
                         throw Exception {Error::bad_formed_file};
                 }
                 switch(ihdr.pixel_format) {
-                    case Pixel_format::grey:
-                        ihdr.pixel_format = Pixel_format::grey_alpha;
+                    case PixelFormat::grey:
+                        ihdr.pixel_format = PixelFormat::grey_alpha;
                         break;
-                    case Pixel_format::rgb:
-                        ihdr.pixel_format = Pixel_format::rgba;
+                    case PixelFormat::rgb:
+                        ihdr.pixel_format = PixelFormat::rgba;
                         break;
-                    case Pixel_format::grey16:
-                        ihdr.pixel_format = Pixel_format::grey_alpha16;
+                    case PixelFormat::grey16:
+                        ihdr.pixel_format = PixelFormat::grey_alpha16;
                         break;
-                    case Pixel_format::rgb16:
-                        ihdr.pixel_format = Pixel_format::rgba16;
+                    case PixelFormat::rgb16:
+                        ihdr.pixel_format = PixelFormat::rgba16;
                         break;
                     default:
                         throw Exception {Error::bad_formed_file};
@@ -241,10 +241,10 @@ kak::Image kak::png::decode_image(const std::filesystem::path& filepath)
     }
 
     Image result;
-    result.pixel_data = std::move(image_data);
+    result.pixels = std::move(image_data);
     result.pixel_format = ihdr.pixel_format;
-    result.image_width = static_cast<int>(ihdr.width);
-    result.image_height = static_cast<int>(ihdr.height);
+    result.width = static_cast<int>(ihdr.width);
+    result.height = static_cast<int>(ihdr.height);
 
     return result;
 }
@@ -297,7 +297,7 @@ void kak::impl::png::read_and_verify_chunk_data_ihdr(std::ifstream& ifs, Ihdr& i
 
             // take opportunity to initialise the helper data-members
             ihdr.bits_per_pixel = ihdr.bit_depth;
-            ihdr.pixel_format = Pixel_format::grey;
+            ihdr.pixel_format = PixelFormat::grey;
             break;
         case 2u: // Truecolor
             if(ihdr.bit_depth == valid_bit_depths[3] or ihdr.bit_depth == valid_bit_depths[4]) {
@@ -306,7 +306,7 @@ void kak::impl::png::read_and_verify_chunk_data_ihdr(std::ifstream& ifs, Ihdr& i
 
             // take opportunity to initialise the helper data-members
             ihdr.bits_per_pixel = ihdr.bit_depth * 3u;
-            ihdr.pixel_format = Pixel_format::rgb;
+            ihdr.pixel_format = PixelFormat::rgb;
             break;
         case 3u: // Indexed-color
             if(ihdr.bit_depth == valid_bit_depths[0] or ihdr.bit_depth == valid_bit_depths[1] or ihdr.bit_depth == valid_bit_depths[2] or ihdr.bit_depth == valid_bit_depths[3]) {
@@ -315,7 +315,7 @@ void kak::impl::png::read_and_verify_chunk_data_ihdr(std::ifstream& ifs, Ihdr& i
 
             // take opportunity to initialise the helper data-members
             ihdr.bits_per_pixel = ihdr.bit_depth;
-            ihdr.pixel_format = Pixel_format::rgb;
+            ihdr.pixel_format = PixelFormat::rgb;
             break;
         case 4u: // Greyscale with alpha
             if(ihdr.bit_depth == valid_bit_depths[3] or ihdr.bit_depth == valid_bit_depths[4]) {
@@ -324,7 +324,7 @@ void kak::impl::png::read_and_verify_chunk_data_ihdr(std::ifstream& ifs, Ihdr& i
 
             // take opportunity to initialise the helper data-members
             ihdr.bits_per_pixel = ihdr.bit_depth * 2u;
-            ihdr.pixel_format = Pixel_format::grey_alpha;
+            ihdr.pixel_format = PixelFormat::grey_alpha;
             break;
         case 6u: // Truecolor with alpha
             if(ihdr.bit_depth == valid_bit_depths[3] or ihdr.bit_depth == valid_bit_depths[4]) {
@@ -333,7 +333,7 @@ void kak::impl::png::read_and_verify_chunk_data_ihdr(std::ifstream& ifs, Ihdr& i
 
             // take opportunity to initialise the helper data-members
             ihdr.bits_per_pixel = ihdr.bit_depth * 4u;
-            ihdr.pixel_format = Pixel_format::rgba;
+            ihdr.pixel_format = PixelFormat::rgba;
             break;
         default:
             throw Exception {Error::bad_formed_file};
@@ -359,17 +359,17 @@ void kak::impl::png::read_and_verify_chunk_data_ihdr(std::ifstream& ifs, Ihdr& i
     // lastly, finish the initialisation of ihdr.pixel_format
     if(ihdr.bit_depth == 16u) {
         switch(ihdr.pixel_format) {
-            case Pixel_format::grey:
-                ihdr.pixel_format = Pixel_format::grey16;
+            case PixelFormat::grey:
+                ihdr.pixel_format = PixelFormat::grey16;
                 break;
-            case Pixel_format::rgb:
-                ihdr.pixel_format = Pixel_format::rgb16;
+            case PixelFormat::rgb:
+                ihdr.pixel_format = PixelFormat::rgb16;
                 break;
-            case Pixel_format::grey_alpha:
-                ihdr.pixel_format = Pixel_format::grey_alpha16;
+            case PixelFormat::grey_alpha:
+                ihdr.pixel_format = PixelFormat::grey_alpha16;
                 break;
-            case Pixel_format::rgba:
-                ihdr.pixel_format = Pixel_format::rgba16;
+            case PixelFormat::rgba:
+                ihdr.pixel_format = PixelFormat::rgba16;
                 break;
         }
     }

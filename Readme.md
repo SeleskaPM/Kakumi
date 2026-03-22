@@ -35,15 +35,15 @@ data-members are as follows:
 
 ```
 struct Image {
-    std::vector<uint8_t> pixel_data;
-    Pixel_format pixel_format;
-    int32_t image_width; // width in pixels
-    int32_t image_height; // height in pixels
+    std::vector<uint8_t> pixels;
+    PixelFormat pixel_format;
+    int32_t width; // in pixels
+    int32_t height; // in pixels
     bool premultiplied_alpha;
 };
 ```
 
-`Pixel_format` is an `enum class` and you can check its values
+`PixelFormat` is an `enum class` and you can check its values
 in the `shared.hpp` header file.
 
 Sometimes you want more than just a static image, what about an
@@ -55,7 +55,7 @@ defined as follows:
 ```
 struct Frame {
     std::vector<uint8_t> data; // pixel data
-    Pixel_format pixel_format;
+    PixelFormat pixel_format;
     int32_t left; // coordinate in pixels
     int32_t top; // coordinate in pixels
     int32_t width; // width in pixels
@@ -68,8 +68,8 @@ struct Frame {
 
 struct Gif {
     std::vector<Frame> frames;
-    int32_t background_width; // width in pixels
-    int32_t background_height; // height in pixels
+    int32_t background_width; // in pixels
+    int32_t background_height; // in pixels
     uint8_t background_color_red;
     uint8_t background_color_green;
     uint8_t background_color_blue;

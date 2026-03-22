@@ -23,7 +23,7 @@ namespace kak::impl::png {
         std::uint8_t interlace_method;
 
         // helper data-members (not part of the specification)
-        Pixel_format pixel_format {Pixel_format::undefined};
+        PixelFormat pixel_format {PixelFormat::undefined};
         std::uint32_t bits_per_pixel {0u};
         std::uint32_t bytes_per_pixel {0u};
     };

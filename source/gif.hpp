@@ -9,7 +9,7 @@ namespace kak::gif {
 
     struct Frame {
         std::vector<std::uint8_t> data; // pixel data
-        Pixel_format pixel_format {Pixel_format::undefined};
+        PixelFormat pixel_format {PixelFormat::undefined};
         int left {0};
         int top {0};
         int width {0};
