@@ -179,9 +179,9 @@ kak::Image kak::tga::decode_image(const std::filesystem::path& filepath)
 
 void kak::impl::tga::read_header(std::ifstream& ifs, Header& header)
 {
-    header.id_length = get_byte(ifs);
-    header.color_map_type = get_byte(ifs);
-    header.image_type = get_byte(ifs);
+    header.id_length = read_byte(ifs);
+    header.color_map_type = read_byte(ifs);
+    header.image_type = read_byte(ifs);
     switch(header.image_type) {
         case 1: // Uncompressed, Color - mapped Image
         case 2: // Uncompressed, True-color Image
@@ -194,9 +194,9 @@ void kak::impl::tga::read_header(std::ifstream& ifs, Header& header)
     }
 
     // Color Map Specification
-    header.color_map_origin = get_little_endian_value<std::uint16_t>(ifs);
-    header.color_map_length = get_little_endian_value<std::uint16_t>(ifs);
-    header.color_map_entry_size = get_byte(ifs);
+    header.color_map_origin = read_little_endian_value<std::uint16_t>(ifs);
+    header.color_map_length = read_little_endian_value<std::uint16_t>(ifs);
+    header.color_map_entry_size = read_byte(ifs);
 
     // validate the Color Map Specification if there is a color-map
     if(header.color_map_type != 0) {
@@ -227,15 +227,15 @@ void kak::impl::tga::read_header(std::ifstream& ifs, Header& header)
     ifs.ignore(4);
     if(not ifs.good()) throw Exception {Error::read_file_failed};
 
-    const std::uint16_t width {get_little_endian_value<std::uint16_t>(ifs)};
-    const std::uint16_t height {get_little_endian_value<std::uint16_t>(ifs)};
+    const std::uint16_t width {read_little_endian_value<std::uint16_t>(ifs)};
+    const std::uint16_t height {read_little_endian_value<std::uint16_t>(ifs)};
     if(width > 32767u || height > 32767u) throw Exception {Error::unsupported_feature};
 
     header.image_width = width;
     header.image_height = height;
     if(header.image_width == 0 || header.image_height == 0) throw Exception {Error::bad_formed_file};
 
-    header.pixel_depth = get_byte(ifs);
+    header.pixel_depth = read_byte(ifs);
     /* the TGA 2.0 specification states that "common values are 8,
     * 16, 24 and 32 but other pixel depths could be used". Probably,
     * in practice, one should act as if only those values are valid */
@@ -246,7 +246,7 @@ void kak::impl::tga::read_header(std::ifstream& ifs, Header& header)
         case 32: break;
         default: throw Exception {Error::unsupported_feature};
     }
-    header.image_descriptor = get_byte(ifs);
+    header.image_descriptor = read_byte(ifs);
 }
 
 std::vector<std::uint8_t> kak::impl::tga::read_color_map(std::ifstream& ifs, const Header& header)
@@ -262,25 +262,25 @@ std::vector<std::uint8_t> kak::impl::tga::read_color_map(std::ifstream& ifs, con
     }
 
     // read the color-map
-    return get_bytes(ifs, entry_bytesize * static_cast<std::streamsize>(header.color_map_length - header.color_map_origin));
+    return read_bytes(ifs, entry_bytesize * static_cast<std::streamsize>(header.color_map_length - header.color_map_origin));
 }
 
 std::int32_t kak::impl::tga::read_color_map_index_1byte(std::ifstream& ifs)
 {
-    return get_byte(ifs);
+    return read_byte(ifs);
 }
 
 std::int32_t kak::impl::tga::read_color_map_index_2bytes(std::ifstream& ifs)
 {
-    return get_little_endian_value<std::uint16_t>(ifs);
+    return read_little_endian_value<std::uint16_t>(ifs);
 }
 
 void kak::impl::tga::read_rgb_5bits(std::vector<std::uint8_t>& image_data, std::ifstream& ifs)
 {
     /* a color comes like this: GGGBBBBB (byte 1),
     * ARRRRRGG (byte 2) */
-    const std::uint8_t byte1 {get_byte(ifs)};
-    const std::uint8_t byte2 {get_byte(ifs)};
+    const std::uint8_t byte1 {read_byte(ifs)};
+    const std::uint8_t byte2 {read_byte(ifs)};
     const int color {byte1 | (byte2 << 8)};
     // blue
     image_data.push_back(range_map[color & 0b0000'0000'0001'1111]);
@@ -334,11 +334,11 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_data_truecolor(std::ifstrea
     }
     // BGR (1 byte per channel)
     else if(header.pixel_depth == 24) {
-        image_data = get_bytes(ifs, static_cast<std::streamsize>(pixel_count) * 3);
+        image_data = read_bytes(ifs, static_cast<std::streamsize>(pixel_count) * 3);
     }
     // BGRA (1 byte per channel)
     else {
-        image_data = get_bytes(ifs, static_cast<std::streamsize>(pixel_count) * 4);
+        image_data = read_bytes(ifs, static_cast<std::streamsize>(pixel_count) * 4);
     }
 
     return image_data;
@@ -355,15 +355,15 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_data_truecolor_compressed(s
     if(header.pixel_depth == 16) {
         image_data.reserve(static_cast<std::size_t>(pixel_count) * 3u);
         while(decompressed_pixels < pixel_count) {
-            repetition_count = get_byte(ifs);
+            repetition_count = read_byte(ifs);
             // if true, it's a run-length packet
             if(repetition_count & 0b1000'0000) {
                 repetition_count = (repetition_count & 0b0111'1111) + 1;
 
                 /* a color comes like this: GGGBBBBB (byte 1),
                 * ARRRRRGG (byte 2) */
-                const std::uint8_t byte1 {get_byte(ifs)};
-                const std::uint8_t byte2 {get_byte(ifs)};
+                const std::uint8_t byte1 {read_byte(ifs)};
+                const std::uint8_t byte2 {read_byte(ifs)};
                 const int color {byte1 | (byte2 << 8)};
 
                 const std::uint8_t blue = range_map[color & 0b0000'0000'0001'1111];
@@ -391,14 +391,14 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_data_truecolor_compressed(s
     else if(header.pixel_depth == 24) {
         image_data.reserve(static_cast<std::size_t>(pixel_count) * 3u);
         while(decompressed_pixels < pixel_count) {
-            repetition_count = get_byte(ifs);
+            repetition_count = read_byte(ifs);
             // if true, it's a run-length packet
             if(repetition_count & 0b1000'0000) {
                 repetition_count = (repetition_count & 0b0111'1111) + 1;
 
-                const std::uint8_t blue {get_byte(ifs)};
-                const std::uint8_t green {get_byte(ifs)};
-                const std::uint8_t red {get_byte(ifs)};
+                const std::uint8_t blue {read_byte(ifs)};
+                const std::uint8_t green {read_byte(ifs)};
+                const std::uint8_t red {read_byte(ifs)};
 
                 for(int i = 0; i < repetition_count; ++i) {
                     image_data.push_back(blue);
@@ -411,11 +411,11 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_data_truecolor_compressed(s
                 repetition_count = (repetition_count & 0b0111'1111) + 1;
                 for(int i = 0; i < repetition_count; ++i) {
                     // blue
-                    image_data.push_back(get_byte(ifs));
+                    image_data.push_back(read_byte(ifs));
                     // green
-                    image_data.push_back(get_byte(ifs));
+                    image_data.push_back(read_byte(ifs));
                     // red
-                    image_data.push_back(get_byte(ifs));
+                    image_data.push_back(read_byte(ifs));
                 }
             }
 
@@ -426,15 +426,15 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_data_truecolor_compressed(s
     else {
         image_data.reserve(static_cast<std::size_t>(pixel_count) * 4u);
         while(decompressed_pixels < pixel_count) {
-            repetition_count = get_byte(ifs);
+            repetition_count = read_byte(ifs);
             // if true, it's a run-length packet
             if(repetition_count & 0b1000'0000) {
                 repetition_count = (repetition_count & 0b0111'1111) + 1;
 
-                const std::uint8_t blue {get_byte(ifs)};
-                const std::uint8_t green {get_byte(ifs)};
-                const std::uint8_t red {get_byte(ifs)};
-                const std::uint8_t alpha {get_byte(ifs)};
+                const std::uint8_t blue {read_byte(ifs)};
+                const std::uint8_t green {read_byte(ifs)};
+                const std::uint8_t red {read_byte(ifs)};
+                const std::uint8_t alpha {read_byte(ifs)};
 
                 for(int i = 0; i < repetition_count; ++i) {
                     image_data.push_back(blue);
@@ -448,13 +448,13 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_data_truecolor_compressed(s
                 repetition_count = (repetition_count & 0b0111'1111) + 1;
                 for(int i = 0; i < repetition_count; ++i) {
                     // blue
-                    image_data.push_back(get_byte(ifs));
+                    image_data.push_back(read_byte(ifs));
                     // green
-                    image_data.push_back(get_byte(ifs));
+                    image_data.push_back(read_byte(ifs));
                     // red
-                    image_data.push_back(get_byte(ifs));
+                    image_data.push_back(read_byte(ifs));
                     // alpha
-                    image_data.push_back(get_byte(ifs));
+                    image_data.push_back(read_byte(ifs));
                 }
             }
 
@@ -473,10 +473,10 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_data_greyscale(std::ifstrea
 
     // greyscale
     if(header.pixel_depth == 8) {
-        image_data = get_bytes(ifs, pixel_count);
+        image_data = read_bytes(ifs, pixel_count);
     }
     // greyscale-alpha
-    else { image_data = get_bytes(ifs, pixel_count * 2); } // safe multiplication
+    else { image_data = read_bytes(ifs, pixel_count * 2); } // safe multiplication
 
     return image_data;
 }
@@ -492,12 +492,12 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_data_greyscale_compressed(s
     if(header.pixel_depth == 8) {
         image_data.reserve(pixel_count);
         while(decompressed_pixels < pixel_count) {
-            repetition_count = get_byte(ifs);
+            repetition_count = read_byte(ifs);
             // if true, it's a run-length packet
             if(repetition_count & 0b1000'0000) {
                 repetition_count = (repetition_count & 0b0111'1111) + 1;
 
-                const std::uint8_t grey {get_byte(ifs)};
+                const std::uint8_t grey {read_byte(ifs)};
                 for(int i = 0; i < repetition_count; ++i) {
                     image_data.push_back(grey);
                 }
@@ -506,7 +506,7 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_data_greyscale_compressed(s
             else {
                 repetition_count = (repetition_count & 0b0111'1111) + 1;
                 for(int i = 0; i < repetition_count; ++i) {
-                    image_data.push_back(get_byte(ifs));
+                    image_data.push_back(read_byte(ifs));
                 }
             }
 
@@ -517,13 +517,13 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_data_greyscale_compressed(s
     else {
         image_data.reserve(pixel_count * 2); // safe multiplication
         while(decompressed_pixels < pixel_count) {
-            repetition_count = get_byte(ifs);
+            repetition_count = read_byte(ifs);
             // if true, it's a run-length packet
             if(repetition_count & 0b1000'0000) {
                 repetition_count = (repetition_count & 0b0111'1111) + 1;
 
-                const std::uint8_t grey {get_byte(ifs)};
-                const std::uint8_t alpha {get_byte(ifs)};
+                const std::uint8_t grey {read_byte(ifs)};
+                const std::uint8_t alpha {read_byte(ifs)};
                 for(int i = 0; i < repetition_count; ++i) {
                     image_data.push_back(grey);
                     image_data.push_back(alpha);
@@ -533,8 +533,8 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_data_greyscale_compressed(s
             else {
                 repetition_count = (repetition_count & 0b0111'1111) + 1;
                 for(int i = 0; i < repetition_count; ++i) {
-                    image_data.push_back(get_byte(ifs));
-                    image_data.push_back(get_byte(ifs));
+                    image_data.push_back(read_byte(ifs));
+                    image_data.push_back(read_byte(ifs));
                 }
             }
 
@@ -649,7 +649,7 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_area_mapped_compressed(std:
     if(entry_bytesize == 2) {
         image_data.reserve(static_cast<std::size_t>(pixel_count) * 3u);
         while(decompressed_indices_count < pixel_count) {
-            repetition_count = get_byte(ifs);
+            repetition_count = read_byte(ifs);
             // if true, it's a run-length packet
             if(repetition_count & 0b1000'0000) {
                 repetition_count = (repetition_count & 0b0111'1111) + 1;
@@ -695,7 +695,7 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_area_mapped_compressed(std:
     else if(entry_bytesize == 3) {
         image_data.reserve(static_cast<std::size_t>(pixel_count) * 3u);
         while(decompressed_indices_count < pixel_count) {
-            repetition_count = get_byte(ifs);
+            repetition_count = read_byte(ifs);
             // if true, it's a run-length packet
             if(repetition_count & 0b1000'0000) {
                 repetition_count = (repetition_count & 0b0111'1111) + 1;
@@ -738,7 +738,7 @@ std::vector<std::uint8_t> kak::impl::tga::read_image_area_mapped_compressed(std:
     else {
         image_data.reserve(static_cast<std::size_t>(pixel_count) * 4u);
         while(decompressed_indices_count < pixel_count) {
-            repetition_count = get_byte(ifs);
+            repetition_count = read_byte(ifs);
             // if true, it's a run-length packet
             if(repetition_count & 0b1000'0000) {
                 repetition_count = (repetition_count & 0b0111'1111) + 1;

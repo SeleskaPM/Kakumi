@@ -59,14 +59,14 @@ namespace rez::impl::deflate {
         int first_area_bitwidth;
     };
 
-    using Deflate_bitstream = Bitstream<Bitstream_format::gif>;
+    using DeflateBitReader = BitReader<BitStreamFormat::gif>;
 
-    void decompress_uncompressed(std::vector<std::uint8_t>& inflated_data, Deflate_bitstream& bitstream);
-    void decompress_fixed(std::vector<std::uint8_t>& inflated_data, Deflate_bitstream& bitstream);
-    void decompress_dynamic(std::vector<std::uint8_t>& inflated_data, std::vector<Huffman_entry>& mother_buffer, Deflate_bitstream& bitstream);
+    void decompress_uncompressed(std::vector<std::uint8_t>& inflated_data, DeflateBitReader& bitstream);
+    void decompress_fixed(std::vector<std::uint8_t>& inflated_data, DeflateBitReader& bitstream);
+    void decompress_dynamic(std::vector<std::uint8_t>& inflated_data, std::vector<Huffman_entry>& mother_buffer, DeflateBitReader& bitstream);
 
     int fill_decoding_table_from_code_lengths(std::span<const int> code_lengths, std::span<Huffman_entry> decoding_table, int first_area_bitwidth);
-    int fetch_symbol(const Decoding_table& decoding_table, Deflate_bitstream& bitstream);
-    void process_symbols(std::vector<std::uint8_t>& inflated_data, const Decoding_table& literal_length_alphabet, const Decoding_table& distance_alphabet, Deflate_bitstream& bitstream);
+    int fetch_symbol(const Decoding_table& decoding_table, DeflateBitReader& bitstream);
+    void process_symbols(std::vector<std::uint8_t>& inflated_data, const Decoding_table& literal_length_alphabet, const Decoding_table& distance_alphabet, DeflateBitReader& bitstream);
     void lz77_copy(std::vector<std::uint8_t>& inflated_data, int length, const std::int32_t distance);
 }

@@ -2,7 +2,7 @@
 #include <sstream>
 
 rez::Exception::Exception(Error error, std::source_location sl)
-    : m_error {error}, m_source_location {sl}
+    : m_error(error), m_source_location(sl)
 {
     std::ostringstream ostr;
     ostr << "REZBITS-EXCEPTION REPORT:\n"
@@ -14,29 +14,62 @@ rez::Exception::Exception(Error error, std::source_location sl)
     m_message = ostr.str();
 }
 
-std::span<const std::uint8_t> rez::impl::Bytestream::get_bytes(const std::size_t amount)
+void rez::impl::ByteReader::plug_source(std::span<const std::uint8_t> source) noexcept
 {
-    if(m_current_byte_index + amount > m_source.size()) {
-        throw Exception {Error::unexpected_eof};
+    m_source = source;
+    m_source_size = static_cast<std::int64_t>(source.size());
+    m_byte_index = 0;
+}
+
+std::uint8_t rez::impl::ByteReader::read_byte()
+{
+    if (m_byte_index + 1 > m_source_size) {
+        throw Exception(Error::unexpected_eof);
     }
 
-    std::span<const std::uint8_t> result = m_source.subspan(m_current_byte_index, amount);
-    m_current_byte_index += amount;
+    return m_source[m_byte_index++];
+}
+
+std::span<const std::uint8_t> rez::impl::ByteReader::read_bytes(std::int32_t amount)
+{
+    if (m_byte_index + amount > m_source_size) {
+        throw Exception(Error::unexpected_eof);
+    }
+
+    std::span<const std::uint8_t> result = m_source.subspan(m_byte_index, amount);
+    m_byte_index += amount;
     return result;
 }
 
-template<rez::impl::Bitstream_format format>
-void rez::impl::Bitstream<format>::plug_source(std::span<const std::uint8_t> source) noexcept
+void rez::impl::ByteReader::skip_bytes(std::int32_t amount)
+{
+    if (m_byte_index + amount > m_source_size) {
+        throw Exception(Error::unexpected_eof);
+    }
+
+    m_byte_index += amount;
+}
+
+template<rez::impl::BitStreamFormat Format>
+void rez::impl::BitReader<Format>::plug_source(std::span<const std::uint8_t> source) noexcept
 {
     m_source = source;
-    m_current_byte_index = 0;
+    m_byte_index = 0;
     m_last_valid_index = static_cast<std::int64_t>(source.size()) - 1;
     m_bits_remaining = static_cast<std::int64_t>(source.size()) * 8;
     m_useful_bits_in_current_byte = 8;
 }
 
-template<rez::impl::Bitstream_format format>
-std::int32_t rez::impl::Bitstream<format>::read_bits(const int amount)
+template<rez::impl::BitStreamFormat Format>
+void rez::impl::BitReader<Format>::rewind() noexcept
+{
+    m_byte_index = 0;
+    m_bits_remaining = static_cast<std::int64_t>(m_source.size()) * 8;
+    m_useful_bits_in_current_byte = 8;
+}
+
+template<rez::impl::BitStreamFormat Format>
+std::int32_t rez::impl::BitReader<Format>::read_bits(int amount)
 {
     if(amount < 1) return 0;
 
@@ -46,8 +79,8 @@ std::int32_t rez::impl::Bitstream<format>::read_bits(const int amount)
     while(bits_taken < amount) {
         if(m_useful_bits_in_current_byte == 0) {
             // go to the next byte
-            ++m_current_byte_index;
-            if(m_current_byte_index > m_last_valid_index) {
+            ++m_byte_index;
+            if(m_byte_index > m_last_valid_index) {
                 throw Exception {Error::unexpected_eof};
             }
             m_useful_bits_in_current_byte = 8;
@@ -59,14 +92,15 @@ std::int32_t rez::impl::Bitstream<format>::read_bits(const int amount)
         // to move outside/discard the bits that are not useful anymore
         const int discard_rotation {8 - m_useful_bits_in_current_byte};
 
-        if constexpr(format == Bitstream_format::gif) {
+        if constexpr (Format == BitStreamFormat::gif) {
             const int mask {(1 << bits_to_take) - 1};
-            result |= ((m_source[m_current_byte_index] >> discard_rotation) & mask) << bits_taken;
+            result |= ((m_source[m_byte_index] >> discard_rotation) & mask) << bits_taken;
         }
         else {
             const int dont_care_bits {8 - bits_to_take};
+            // without the & 0xFF, the mask wouldn't be constrained to 8 bits
             const int mask {(0xFF << dont_care_bits) & 0xFF};
-            int temp {(m_source[m_current_byte_index] << discard_rotation) & mask};
+            int temp {(m_source[m_byte_index] << discard_rotation) & mask};
             temp >>= dont_care_bits;
             result = (result << bits_taken) | temp;
         }
@@ -80,32 +114,32 @@ std::int32_t rez::impl::Bitstream<format>::read_bits(const int amount)
     return result;
 }
 
-template<rez::impl::Bitstream_format format>
-std::int32_t rez::impl::Bitstream<format>::peek_bits(const int amount)
+template<rez::impl::BitStreamFormat Format>
+std::int32_t rez::impl::BitReader<Format>::peek_bits(int amount)
 {
-    const std::int64_t copy1 {m_current_byte_index};
+    const std::int64_t copy1 {m_byte_index};
     const int copy2 {m_useful_bits_in_current_byte};
     const std::int64_t copy3 {m_bits_remaining};
 
     try {
         const std::int32_t result {read_bits(amount)};
         // "go back in time"
-        m_current_byte_index = copy1;
+        m_byte_index = copy1;
         m_useful_bits_in_current_byte = copy2;
         m_bits_remaining = copy3;
 
         return result;
     }
     catch(const std::exception& e) {
-        m_current_byte_index = copy1;
+        m_byte_index = copy1;
         m_useful_bits_in_current_byte = copy2;
         m_bits_remaining = copy3;
         throw;
     }
 }
 
-template<rez::impl::Bitstream_format format>
-void rez::impl::Bitstream<format>::skip_bits(const int amount)
+template<rez::impl::BitStreamFormat Format>
+void rez::impl::BitReader<Format>::skip_bits(int amount)
 {
     if(amount < 1) return;
 
@@ -113,8 +147,8 @@ void rez::impl::Bitstream<format>::skip_bits(const int amount)
     while(bits_skipped < amount) {
         if(m_useful_bits_in_current_byte == 0) {
             // go to the next byte
-            ++m_current_byte_index;
-            if(m_current_byte_index > m_last_valid_index) {
+            ++m_byte_index;
+            if(m_byte_index > m_last_valid_index) {
                 throw Exception {Error::unexpected_eof};
             }
             m_useful_bits_in_current_byte = 8;
@@ -131,33 +165,33 @@ void rez::impl::Bitstream<format>::skip_bits(const int amount)
     m_bits_remaining -= amount;
 }
 
-template<rez::impl::Bitstream_format format>
-void rez::impl::Bitstream<format>::skip_until_next_byte_boundary()
+template<rez::impl::BitStreamFormat Format>
+void rez::impl::BitReader<Format>::skip_until_next_byte_boundary()
 {
     if(m_useful_bits_in_current_byte == 8) return;
     
-    ++m_current_byte_index;
-    if(m_current_byte_index > m_last_valid_index) {
+    ++m_byte_index;
+    if(m_byte_index > m_last_valid_index) {
         throw Exception {Error::unexpected_eof};
     }
     m_bits_remaining -= m_useful_bits_in_current_byte;
     m_useful_bits_in_current_byte = 8;
 }
 
-template<rez::impl::Bitstream_format format>
-std::span<const std::uint8_t> rez::impl::Bitstream<format>::read_bytes(const int amount)
+template<rez::impl::BitStreamFormat Format>
+std::span<const std::uint8_t> rez::impl::BitReader<Format>::read_bytes(int amount)
 {
     if(amount < 1) return {};
 
-    if(m_current_byte_index + amount > m_source.size()) {
+    if(m_byte_index + amount > m_source.size()) {
         throw Exception {Error::unexpected_eof};
     }
 
-    std::span<const std::uint8_t> result = m_source.subspan(m_current_byte_index, amount);
+    std::span<const std::uint8_t> result = m_source.subspan(m_byte_index, amount);
 
     // book-keeping
-    m_current_byte_index += amount;
-    if(m_current_byte_index == m_source.size()) {
+    m_byte_index += amount;
+    if(m_byte_index == m_source.size()) {
         m_useful_bits_in_current_byte = 0;
     }
     else { m_useful_bits_in_current_byte = 8; }
@@ -169,5 +203,5 @@ std::span<const std::uint8_t> rez::impl::Bitstream<format>::read_bytes(const int
     return result;
 }
 
-template class rez::impl::Bitstream<rez::impl::Bitstream_format::gif>;
-template class rez::impl::Bitstream<rez::impl::Bitstream_format::jpg>;
+template class rez::impl::BitReader<rez::impl::BitStreamFormat::gif>;
+template class rez::impl::BitReader<rez::impl::BitStreamFormat::jpg>;

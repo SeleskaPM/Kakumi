@@ -4,7 +4,7 @@
 
 std::vector<std::uint8_t> rez::decompress_deflate(std::span<const std::uint8_t> deflate_data)
 {
-    impl::deflate::Deflate_bitstream bitstream {deflate_data};
+    impl::deflate::DeflateBitReader bitstream {deflate_data};
     std::vector<std::uint8_t> inflated_data;
     inflated_data.reserve(25000); // 25KB
     //inflated_data.reserve(110596800); // only to test
@@ -41,7 +41,7 @@ std::vector<std::uint8_t> rez::decompress_deflate(std::span<const std::uint8_t> 
     return inflated_data;
 }
 
-void rez::impl::deflate::decompress_uncompressed(std::vector<std::uint8_t>& inflated_data, Deflate_bitstream& bitstream)
+void rez::impl::deflate::decompress_uncompressed(std::vector<std::uint8_t>& inflated_data, DeflateBitReader& bitstream)
 {
     const std::int32_t len {bitstream.read_bits(16)};
     const std::int32_t nlen {bitstream.read_bits(16)};
@@ -53,7 +53,7 @@ void rez::impl::deflate::decompress_uncompressed(std::vector<std::uint8_t>& infl
     inflated_data.insert(inflated_data.end(), uncompressed_data.begin(), uncompressed_data.end());
 }
 
-void rez::impl::deflate::decompress_fixed(std::vector<std::uint8_t>& inflated_data, Deflate_bitstream& bitstream)
+void rez::impl::deflate::decompress_fixed(std::vector<std::uint8_t>& inflated_data, DeflateBitReader& bitstream)
 {
     /* I don't want to allocate the mother buffer for fixed blocks on
     * the stack because the amount of memory required is not little
@@ -621,7 +621,7 @@ void rez::impl::deflate::decompress_fixed(std::vector<std::uint8_t>& inflated_da
     process_symbols(inflated_data, literal_length_alphabet, distance_alphabet, bitstream);
 }
 
-void rez::impl::deflate::decompress_dynamic(std::vector<std::uint8_t>& inflated_data, std::vector<Huffman_entry>& mother_buffer, Deflate_bitstream& bitstream)
+void rez::impl::deflate::decompress_dynamic(std::vector<std::uint8_t>& inflated_data, std::vector<Huffman_entry>& mother_buffer, DeflateBitReader& bitstream)
 {
     const int hlit {static_cast<int>(bitstream.read_bits(5) + 257)};
     const int hdist {static_cast<int>(bitstream.read_bits(5) + 1)};
@@ -896,7 +896,7 @@ int rez::impl::deflate::fill_decoding_table_from_code_lengths(std::span<const in
     return first_area_bitwidth;
 }
 
-int rez::impl::deflate::fetch_symbol(const Decoding_table& decoding_table, Deflate_bitstream& bitstream)
+int rez::impl::deflate::fetch_symbol(const Decoding_table& decoding_table, DeflateBitReader& bitstream)
 {
     Huffman_entry entry;
     if(bitstream.bits_remaining() < decoding_table.first_area_bitwidth) {
@@ -921,7 +921,7 @@ int rez::impl::deflate::fetch_symbol(const Decoding_table& decoding_table, Defla
     }
 }
 
-void rez::impl::deflate::process_symbols(std::vector<std::uint8_t>& inflated_data, const Decoding_table& literal_length_alphabet, const Decoding_table& distance_alphabet, Deflate_bitstream& bitstream)
+void rez::impl::deflate::process_symbols(std::vector<std::uint8_t>& inflated_data, const Decoding_table& literal_length_alphabet, const Decoding_table& distance_alphabet, DeflateBitReader& bitstream)
 {
     int symbol {fetch_symbol(literal_length_alphabet, bitstream)};
     while(symbol != 256) {

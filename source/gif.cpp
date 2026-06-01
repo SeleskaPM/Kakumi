@@ -21,7 +21,7 @@ kak::Image kak::gif::decode_image(const std::filesystem::path& filepath)
     // after the Logical Screen Descriptor, there could be a Global Color Table
     std::vector<std::uint8_t> global_color_table;
     if(logical_screen_descriptor.global_color_table_flag) {
-        global_color_table = get_bytes(gif_file, logical_screen_descriptor.size_of_global_color_table * 3);
+        global_color_table = read_bytes(gif_file, logical_screen_descriptor.size_of_global_color_table * 3);
     }
 
     // after the Global Color Table, a series of blocks follow until the file ends
@@ -32,7 +32,7 @@ kak::Image kak::gif::decode_image(const std::filesystem::path& filepath)
     int image_width {0};
     int image_height {0};
 
-    int block_label {get_little_endian_value<std::uint8_t>(gif_file)};
+    int block_label {read_little_endian_value<std::uint8_t>(gif_file)};
     // 0x3B == End-of-file
     while(block_label != 0x3B) {
         switch(block_label) {
@@ -44,7 +44,7 @@ kak::Image kak::gif::decode_image(const std::filesystem::path& filepath)
 
                 // after an Image Descriptor, a Local Color Table could follow
                 if(image_descriptor.local_color_table_flag) {
-                    std::vector<std::uint8_t> local_color_table = get_bytes(gif_file, image_descriptor.size_of_local_color_table * 3);
+                    std::vector<std::uint8_t> local_color_table = read_bytes(gif_file, image_descriptor.size_of_local_color_table * 3);
                     image_data = decompress_image_data(gif_file, image_descriptor.size_of_local_color_table);
 
                     if(image_descriptor.interlace_flag) {
@@ -81,18 +81,18 @@ kak::Image kak::gif::decode_image(const std::filesystem::path& filepath)
             }
 
             case 0x21: { // Extension block
-                block_label = get_little_endian_value<std::uint8_t>(gif_file);
+                block_label = read_little_endian_value<std::uint8_t>(gif_file);
                 switch(block_label) {
                     case 0xFF: { // Application Extension
                         gif_file.ignore(12);
                         if(not gif_file.good()) throw Exception {Error::read_file_failed};
 
-                        std::uint8_t block_size {get_little_endian_value<std::uint8_t>(gif_file)};
+                        std::uint8_t block_size {read_little_endian_value<std::uint8_t>(gif_file)};
                         while(block_size != 0) {
                             gif_file.ignore(block_size);
                             if(not gif_file.good()) throw Exception {Error::read_file_failed};
 
-                            block_size = get_little_endian_value<std::uint8_t>(gif_file);
+                            block_size = read_little_endian_value<std::uint8_t>(gif_file);
                         }
                         break;
                     }
@@ -111,12 +111,12 @@ kak::Image kak::gif::decode_image(const std::filesystem::path& filepath)
                     }
 
                     case 0xFE: { // Comment Extension
-                        std::uint8_t block_size {get_little_endian_value<std::uint8_t>(gif_file)};
+                        std::uint8_t block_size {read_little_endian_value<std::uint8_t>(gif_file)};
                         while(block_size != 0) {
                             gif_file.ignore(block_size);
                             if(not gif_file.good()) throw Exception {Error::read_file_failed};
 
-                            block_size = get_little_endian_value<std::uint8_t>(gif_file);
+                            block_size = read_little_endian_value<std::uint8_t>(gif_file);
                         }
                         break;
                     }
@@ -125,12 +125,12 @@ kak::Image kak::gif::decode_image(const std::filesystem::path& filepath)
                         gif_file.ignore(13);
                         if(not gif_file.good()) throw Exception {Error::read_file_failed};
 
-                        std::uint8_t block_size {get_little_endian_value<std::uint8_t>(gif_file)};
+                        std::uint8_t block_size {read_little_endian_value<std::uint8_t>(gif_file)};
                         while(block_size != 0) {
                             gif_file.ignore(block_size);
                             if(not gif_file.good()) throw Exception {Error::read_file_failed};
 
-                            block_size = get_little_endian_value<std::uint8_t>(gif_file);
+                            block_size = read_little_endian_value<std::uint8_t>(gif_file);
                         }
                         break;
                     }
@@ -143,7 +143,7 @@ kak::Image kak::gif::decode_image(const std::filesystem::path& filepath)
             default: throw Exception {Error::bad_formed_file};
         }
         if(image_descriptor_found) break;
-        block_label = get_little_endian_value<std::uint8_t>(gif_file);
+        block_label = read_little_endian_value<std::uint8_t>(gif_file);
     }
 
     Image image;
@@ -175,7 +175,7 @@ kak::gif::Gif kak::gif::decode(const std::filesystem::path& filepath)
     // after the Logical Screen Descriptor, there could be a Global Color Table
     std::vector<std::uint8_t> global_color_table;
     if(logical_screen_descriptor.global_color_table_flag) {
-        global_color_table = get_bytes(gif_file, logical_screen_descriptor.size_of_global_color_table * 3);
+        global_color_table = read_bytes(gif_file, logical_screen_descriptor.size_of_global_color_table * 3);
 
         const int index {logical_screen_descriptor.background_color_index * 3};
         if(index > static_cast<int>(global_color_table.size()) - 3) {
@@ -190,7 +190,7 @@ kak::gif::Gif kak::gif::decode(const std::filesystem::path& filepath)
     // after the Global Color Table, a series of blocks follow until the file ends
     std::optional<Graphic_control_extension> graphic_control_extension;
 
-    int block_label {get_little_endian_value<std::uint8_t>(gif_file)};
+    int block_label {read_little_endian_value<std::uint8_t>(gif_file)};
     // 0x3B == End-of-file
     while(block_label != 0x3B) {
         switch(block_label) {
@@ -205,7 +205,7 @@ kak::gif::Gif kak::gif::decode(const std::filesystem::path& filepath)
                 frame.height = image_descriptor.height;
                 // after an Image Descriptor, a Local Color Table could follow
                 if(image_descriptor.local_color_table_flag) {
-                    std::vector<std::uint8_t> local_color_table = get_bytes(gif_file, image_descriptor.size_of_local_color_table * 3);
+                    std::vector<std::uint8_t> local_color_table = read_bytes(gif_file, image_descriptor.size_of_local_color_table * 3);
                     frame.data = decompress_image_data(gif_file, image_descriptor.size_of_local_color_table);
 
                     if(image_descriptor.interlace_flag) {
@@ -265,18 +265,18 @@ kak::gif::Gif kak::gif::decode(const std::filesystem::path& filepath)
             }
 
             case 0x21: { // Extension block
-                block_label = get_little_endian_value<std::uint8_t>(gif_file);
+                block_label = read_little_endian_value<std::uint8_t>(gif_file);
                 switch(block_label) {
                     case 0xFF: { // Application Extension
                         gif_file.ignore(12);
                         if(not gif_file.good()) throw Exception {Error::read_file_failed};
 
-                        std::uint8_t block_size {get_little_endian_value<std::uint8_t>(gif_file)};
+                        std::uint8_t block_size {read_little_endian_value<std::uint8_t>(gif_file)};
                         while(block_size != 0) {
                             gif_file.ignore(block_size);
                             if(not gif_file.good()) throw Exception {Error::read_file_failed};
 
-                            block_size = get_little_endian_value<std::uint8_t>(gif_file);
+                            block_size = read_little_endian_value<std::uint8_t>(gif_file);
                         }
                         break;
                     }
@@ -295,12 +295,12 @@ kak::gif::Gif kak::gif::decode(const std::filesystem::path& filepath)
                     }
 
                     case 0xFE: { // Comment Extension
-                        std::uint8_t block_size {get_little_endian_value<std::uint8_t>(gif_file)};
+                        std::uint8_t block_size {read_little_endian_value<std::uint8_t>(gif_file)};
                         while(block_size != 0) {
                             gif_file.ignore(block_size);
                             if(not gif_file.good()) throw Exception {Error::read_file_failed};
 
-                            block_size = get_little_endian_value<std::uint8_t>(gif_file);
+                            block_size = read_little_endian_value<std::uint8_t>(gif_file);
                         }
                         break;
                     }
@@ -309,12 +309,12 @@ kak::gif::Gif kak::gif::decode(const std::filesystem::path& filepath)
                         gif_file.ignore(13);
                         if(not gif_file.good()) throw Exception {Error::read_file_failed};
 
-                        std::uint8_t block_size {get_little_endian_value<std::uint8_t>(gif_file)};
+                        std::uint8_t block_size {read_little_endian_value<std::uint8_t>(gif_file)};
                         while(block_size != 0) {
                             gif_file.ignore(block_size);
                             if(not gif_file.good()) throw Exception {Error::read_file_failed};
 
-                            block_size = get_little_endian_value<std::uint8_t>(gif_file);
+                            block_size = read_little_endian_value<std::uint8_t>(gif_file);
                         }
                         break;
                     }
@@ -327,7 +327,7 @@ kak::gif::Gif kak::gif::decode(const std::filesystem::path& filepath)
             default: throw Exception {Error::bad_formed_file};
         }
         
-        block_label = get_little_endian_value<std::uint8_t>(gif_file);
+        block_label = read_little_endian_value<std::uint8_t>(gif_file);
     }
 
     return result;
@@ -340,7 +340,7 @@ void kak::impl::gif::read_signature(std::ifstream& ifs)
     * byte will always be "8", because that 4th byte is part of the
     * field that comes after the signature, which is the version of
     * the GIF standard and only two strings are valid: "87a" and "89a" */
-    const std::int32_t signature {get_big_endian_value<std::int32_t>(ifs)};
+    const std::int32_t signature {read_big_endian_value<std::int32_t>(ifs)};
     if(signature != 0x47494638) throw Exception {Error::bad_formed_file};
 }
 
@@ -348,7 +348,7 @@ bool kak::impl::gif::read_version_and_check_if_87a(std::ifstream& ifs)
 {
     /* 4 bytes were read when reading the signature so in here we
     * only need to read 2 bytes */
-    const std::int16_t version {get_big_endian_value<std::int16_t>(ifs)};
+    const std::int16_t version {read_big_endian_value<std::int16_t>(ifs)};
     switch(version) {
         case 0x3761: return true; // 87a
         case 0x3961: return false; // 89a
@@ -358,29 +358,29 @@ bool kak::impl::gif::read_version_and_check_if_87a(std::ifstream& ifs)
 
 void kak::impl::gif::read_logical_screen_descriptor(std::ifstream& ifs, Logical_screen_descriptor& lsd)
 {
-    const std::uint16_t width {get_little_endian_value<std::uint16_t>(ifs)};
-    const std::uint16_t height {get_little_endian_value<std::uint16_t>(ifs)};
+    const std::uint16_t width {read_little_endian_value<std::uint16_t>(ifs)};
+    const std::uint16_t height {read_little_endian_value<std::uint16_t>(ifs)};
     if(width > 32767u || height > 32767u) throw Exception {Error::unsupported_feature};
 
     lsd.width = static_cast<int>(width);
     lsd.height = static_cast<int>(height);
     if(lsd.width == 0 || lsd.height == 0) throw Exception {Error::bad_formed_file};
 
-    const int packed_fields {get_little_endian_value<std::uint8_t>(ifs)};
+    const int packed_fields {read_little_endian_value<std::uint8_t>(ifs)};
     lsd.global_color_table_flag = packed_fields & 0b1000'0000;
     lsd.color_resolution = ((packed_fields & 0b0111'0000) >> 4) + 1;
     lsd.sort_flag = packed_fields & 0b0000'1000;
     // 1 << some_value == std::pow(2, some_value)
     lsd.size_of_global_color_table = 1 << ((packed_fields & 0b0000'0111) + 1);
 
-    lsd.background_color_index = get_little_endian_value<std::uint8_t>(ifs);
-    lsd.pixel_aspect_ratio = get_little_endian_value<std::uint8_t>(ifs);
+    lsd.background_color_index = read_little_endian_value<std::uint8_t>(ifs);
+    lsd.pixel_aspect_ratio = read_little_endian_value<std::uint8_t>(ifs);
 }
 
 void kak::impl::gif::read_image_descriptor(std::ifstream& ifs, Image_descriptor& descriptor)
 {
-    const std::uint16_t left {get_little_endian_value<std::uint16_t>(ifs)};
-    const std::uint16_t top {get_little_endian_value<std::uint16_t>(ifs)};
+    const std::uint16_t left {read_little_endian_value<std::uint16_t>(ifs)};
+    const std::uint16_t top {read_little_endian_value<std::uint16_t>(ifs)};
     if(left > 32767u || top > 32767u) throw Exception {Error::unsupported_feature};
 
     descriptor.left = static_cast<int>(left);
@@ -391,15 +391,15 @@ void kak::impl::gif::read_image_descriptor(std::ifstream& ifs, Image_descriptor&
     * there are GIF files out there with Image Descriptors whose
     * size doesn't fit, yet they can be displayed if that error
     * is ignored */
-    const std::uint16_t width {get_little_endian_value<std::uint16_t>(ifs)};
-    const std::uint16_t height {get_little_endian_value<std::uint16_t>(ifs)};
+    const std::uint16_t width {read_little_endian_value<std::uint16_t>(ifs)};
+    const std::uint16_t height {read_little_endian_value<std::uint16_t>(ifs)};
     if(width > 32767u || height > 32767u) throw Exception {Error::unsupported_feature};
 
     descriptor.width = static_cast<int>(width);
     descriptor.height = static_cast<int>(height);
     if(descriptor.width == 0 || descriptor.height == 0) throw Exception {Error::bad_formed_file};
 
-    const int packed_fields {get_little_endian_value<std::uint8_t>(ifs)};
+    const int packed_fields {read_little_endian_value<std::uint8_t>(ifs)};
     descriptor.local_color_table_flag = packed_fields & 0b1000'0000;
     descriptor.interlace_flag = packed_fields & 0b0100'0000;
     descriptor.sort_flag = packed_fields & 0b0010'0000;
@@ -409,7 +409,7 @@ void kak::impl::gif::read_image_descriptor(std::ifstream& ifs, Image_descriptor&
 
 void kak::impl::gif::read_graphic_control_extension(std::ifstream& ifs, Graphic_control_extension& gce)
 {
-    const int packed_fields {get_little_endian_value<std::uint8_t>(ifs)};
+    const int packed_fields {read_little_endian_value<std::uint8_t>(ifs)};
     gce.disposal_method = (packed_fields & 0b0001'1100) >> 2;
     /* the disposal method cannot have a value bigger than 3, so
     * maybe I should throw an exception, but I decided to instead
@@ -420,8 +420,8 @@ void kak::impl::gif::read_graphic_control_extension(std::ifstream& ifs, Graphic_
     gce.user_input_flag = packed_fields & 0b0000'0010;
     gce.transparent_color_flag = packed_fields & 0b0000'0001;
 
-    gce.delay_time = get_little_endian_value<std::uint16_t>(ifs);
-    gce.transparent_color_index = get_little_endian_value<std::uint8_t>(ifs);
+    gce.delay_time = read_little_endian_value<std::uint16_t>(ifs);
+    gce.transparent_color_index = read_little_endian_value<std::uint8_t>(ifs);
 }
 
 std::vector<std::uint8_t> kak::impl::gif::decompress_image_data(std::ifstream& ifs, const int color_count)
@@ -430,7 +430,7 @@ std::vector<std::uint8_t> kak::impl::gif::decompress_image_data(std::ifstream& i
     * decompressed. That isn't accurate: what is going to be
     * decompressed is index data into a color table */
     
-    const int minimum_lzw_code_size {get_little_endian_value<std::uint8_t>(ifs)};
+    const int minimum_lzw_code_size {read_little_endian_value<std::uint8_t>(ifs)};
     /* the maximum number of entries in a color table is 256,
     * therefore the minimum LZW code size cannot be bigger than 8
     * because what 'minimum_lzw_code_size' represents is the minimum
@@ -445,14 +445,14 @@ std::vector<std::uint8_t> kak::impl::gif::decompress_image_data(std::ifstream& i
 
     std::vector<std::uint8_t> compression_codes;
     std::vector<std::uint8_t>::size_type insertion_index;
-    int block_size {get_little_endian_value<std::uint8_t>(ifs)};
+    int block_size {read_little_endian_value<std::uint8_t>(ifs)};
     while(block_size != 0) {
         insertion_index = compression_codes.size();
         compression_codes.resize(insertion_index + block_size);
         ifs.read(reinterpret_cast<char*>(&compression_codes[insertion_index]), block_size);
         if(not ifs.good()) throw Exception {Error::read_file_failed};
     
-        block_size = get_little_endian_value<std::uint8_t>(ifs);
+        block_size = read_little_endian_value<std::uint8_t>(ifs);
     }
     if(compression_codes.empty()) throw Exception {Error::bad_formed_file};
 
@@ -505,7 +505,7 @@ std::vector<std::uint8_t> kak::impl::gif::process_compression_codes(const std::v
     int current_max_representable_indexes {1 << current_lzw_code_size};
 
     std::vector<std::uint8_t> index_data;
-    rez::impl::Bitstream<rez::impl::Bitstream_format::gif> bitstream {compression_codes};
+    rez::impl::BitReader<rez::impl::BitStreamFormat::gif> bitstream {compression_codes};
     int code {bitstream.read_bits(current_lzw_code_size)};
 
     while(code != end_code) {

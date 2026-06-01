@@ -18,7 +18,7 @@ kak::Image kak::png::decode_image(const std::filesystem::path& filepath)
     read_and_verify_signature(png_file);
 
     // read the IHDR chunk
-    verify_chunk_crc(get_big_endian_value<std::uint32_t>(png_file), png_file);
+    verify_chunk_crc(read_big_endian_value<std::uint32_t>(png_file), png_file);
     read_and_verify_chunk_type(png_file, Chunk_type::IHDR);
     Ihdr ihdr;
     read_and_verify_chunk_data_ihdr(png_file, ihdr);
@@ -34,11 +34,11 @@ kak::Image kak::png::decode_image(const std::filesystem::path& filepath)
 
     // as said before: sequence of chunks until the file ends
     while(loop_should_continue) {
-        std::uint32_t chunk_length_field {get_big_endian_value<std::uint32_t>(png_file)};
+        std::uint32_t chunk_length_field {read_big_endian_value<std::uint32_t>(png_file)};
         verify_chunk_crc(chunk_length_field, png_file);
 
         // (┬┬﹏┬┬)
-        const std::uint32_t chunk_type {get_big_endian_value<std::uint32_t>(png_file)};
+        const std::uint32_t chunk_type {read_big_endian_value<std::uint32_t>(png_file)};
         switch(static_cast<Chunk_type>(chunk_type)) {
             case Chunk_type::PLTE: {
                 // PLTE is valid for color types 2 and 6 too
@@ -257,25 +257,25 @@ void kak::impl::png::verify_uint32_value(const std::uint32_t number)
 
 void kak::impl::png::read_and_verify_signature(std::ifstream& ifs)
 {
-    const std::uint64_t signature {get_big_endian_value<std::uint64_t>(ifs)};
+    const std::uint64_t signature {read_big_endian_value<std::uint64_t>(ifs)};
     if(signature != 0x89504E470D0A1A0Aull) throw Exception {Error::bad_formed_file};
 }
 
 void kak::impl::png::read_and_verify_chunk_type(std::ifstream& ifs, const Chunk_type type)
 {
-    const std::uint32_t chunk_type {get_big_endian_value<std::uint32_t>(ifs)};
+    const std::uint32_t chunk_type {read_big_endian_value<std::uint32_t>(ifs)};
     if(chunk_type != static_cast<std::uint32_t>(type)) throw Exception {Error::bad_formed_file};
 }
 
 void kak::impl::png::read_and_verify_chunk_data_ihdr(std::ifstream& ifs, Ihdr& ihdr)
 {
-    ihdr.width = get_big_endian_value<std::uint32_t>(ifs);
-    ihdr.height = get_big_endian_value<std::uint32_t>(ifs);
-    ihdr.bit_depth = get_big_endian_value<std::uint8_t>(ifs);
-    ihdr.color_type = get_big_endian_value<std::uint8_t>(ifs);
-    ihdr.compression_method = get_big_endian_value<std::uint8_t>(ifs);
-    ihdr.filter_method = get_big_endian_value<std::uint8_t>(ifs);
-    ihdr.interlace_method = get_big_endian_value<std::uint8_t>(ifs);
+    ihdr.width = read_big_endian_value<std::uint32_t>(ifs);
+    ihdr.height = read_big_endian_value<std::uint32_t>(ifs);
+    ihdr.bit_depth = read_big_endian_value<std::uint8_t>(ifs);
+    ihdr.color_type = read_big_endian_value<std::uint8_t>(ifs);
+    ihdr.compression_method = read_big_endian_value<std::uint8_t>(ifs);
+    ihdr.filter_method = read_big_endian_value<std::uint8_t>(ifs);
+    ihdr.interlace_method = read_big_endian_value<std::uint8_t>(ifs);
 
     /* verification */
     // verify width and height
@@ -385,9 +385,9 @@ std::vector<std::uint8_t> kak::impl::png::decompress_image_data(const std::vecto
     ofs.close();
     */
 
-    rez::impl::Bytestream bytestream {image_data};
+    rez::impl::ByteReader bytestream {image_data};
     // CMF means Compression Method and flags
-    const std::uint8_t cmf {bytestream.get_from_big_endian<std::uint8_t>()};
+    const std::uint8_t cmf {bytestream.read_big_endian_value<std::uint8_t>()};
     const std::uint32_t compression_method {cmf & 0b00001111u};
     // the below != 8u means: if compression_method != DEFLATE
     if(compression_method != 8u) throw Exception {Error::bad_formed_file};
@@ -400,14 +400,14 @@ std::vector<std::uint8_t> kak::impl::png::decompress_image_data(const std::vecto
     // ZLIB specification doesn't allow compression_info to be more than 7
     if(compression_info > 7u) throw Exception {Error::bad_formed_file};
 
-    const std::uint8_t flags {bytestream.get_from_big_endian<std::uint8_t>()};
+    const std::uint8_t flags {bytestream.read_big_endian_value<std::uint8_t>()};
     // ZLIB specification says so...
     if((cmf * 256u + flags) % 31u != 0u) throw Exception {Error::corrupted_file};
     // PNG specification doesn't allow the ZLIB stream to have a preset dictionary
     if(flags & 0b00100000u) throw Exception {Error::bad_formed_file};
 
     // decompress DEFLATE
-    std::span<const std::uint8_t> deflate_stream {bytestream.get_bytes(image_data.size() - 6u)};
+    std::span<const std::uint8_t> deflate_stream {bytestream.read_bytes(image_data.size() - 6u)};
 
     /*
     ofs.open("C:/Users/Seleska/Documents/DEFLATE and ZLIB test suite/deflate-stream-4.bin", std::ios_base::binary);
@@ -419,7 +419,7 @@ std::vector<std::uint8_t> kak::impl::png::decompress_image_data(const std::vecto
 
     // verify ADLER32 checksum
     const std::uint32_t adler32_checksum {rez::adler32(inflated_stream)};
-    const std::uint32_t original_adler32_checksum {bytestream.get_from_big_endian<std::uint32_t>()};
+    const std::uint32_t original_adler32_checksum {bytestream.read_big_endian_value<std::uint32_t>()};
     if(adler32_checksum != original_adler32_checksum) {
         throw Exception {Error::corrupted_file};
     }
@@ -961,7 +961,7 @@ void kak::impl::png::verify_chunk_crc(const std::uint32_t chunk_length_field, st
     * CRC (4 bytes)
     */
     // the "4u" is the Chunk Type field
-    const std::vector<std::uint8_t> bytes = get_bytes(data_source, static_cast<std::streamsize>(4u + chunk_length_field));
+    const std::vector<std::uint8_t> bytes = read_bytes(data_source, static_cast<std::streamsize>(4u + chunk_length_field));
 
     // CRC-32 computation
     std::uint32_t crc = 0xFFFFFFFFu;
@@ -970,7 +970,7 @@ void kak::impl::png::verify_chunk_crc(const std::uint32_t chunk_length_field, st
     }
     crc ^= 0xFFFFFFFFu;
 
-    const std::uint32_t in_file_crc {get_big_endian_value<std::uint32_t>(data_source)};
+    const std::uint32_t in_file_crc {read_big_endian_value<std::uint32_t>(data_source)};
     if(in_file_crc != crc) throw Exception {Error::corrupted_file};
 
     // the "8u" is the Chunk Type field + the CRC field
