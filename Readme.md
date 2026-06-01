@@ -6,7 +6,7 @@ following formats:
 Does not support APNG yet)
 - GIF (ignores the Plain Text Extension)
 - TGA (ignores the TGA Footer)
-- BMP (only BITMAPCOREHEADER for now)
+- BMP (only uncompressed RGB)
 
 Kakumi only has one dependency: the C++ library
 [Rezbits](https://github.com/SeleskaPM/Rezbits),
